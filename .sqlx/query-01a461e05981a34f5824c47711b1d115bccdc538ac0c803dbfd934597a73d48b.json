@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT raw_source FROM messages WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "raw_source",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "01a461e05981a34f5824c47711b1d115bccdc538ac0c803dbfd934597a73d48b"
+}

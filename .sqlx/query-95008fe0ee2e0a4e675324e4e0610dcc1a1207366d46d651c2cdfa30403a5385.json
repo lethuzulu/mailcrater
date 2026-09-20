@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, received_at, from_addr, to_addrs, subject FROM messages\n                     WHERE subject LIKE ? OR from_addr LIKE ?\n                     ORDER BY received_at DESC\n                     LIMIT ? OFFSET ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "received_at",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "from_addr",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "to_addrs",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "subject",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "95008fe0ee2e0a4e675324e4e0610dcc1a1207366d46d651c2cdfa30403a5385"
+}

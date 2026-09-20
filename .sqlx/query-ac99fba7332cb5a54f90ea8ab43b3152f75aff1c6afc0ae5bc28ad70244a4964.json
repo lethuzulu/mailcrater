@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, filename, content_type, size FROM attachments WHERE message_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "filename",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "content_type",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "size",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "ac99fba7332cb5a54f90ea8ab43b3152f75aff1c6afc0ae5bc28ad70244a4964"
+}

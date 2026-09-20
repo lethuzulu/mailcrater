@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, received_at, from_addr, to_addrs, subject FROM messages\n                     ORDER BY received_at DESC\n                     LIMIT ? OFFSET ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "received_at",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "from_addr",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "to_addrs",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "subject",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "8f403ecba7d4b43bf15402255dbaa76d9c94c243ba400580e3cb3cf0c6dcdbb1"
+}

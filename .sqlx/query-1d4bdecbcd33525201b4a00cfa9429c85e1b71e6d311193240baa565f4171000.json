@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT filename, content_type, data FROM attachments WHERE id = ? AND message_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "filename",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "content_type",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "data",
+        "ordinal": 2,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "1d4bdecbcd33525201b4a00cfa9429c85e1b71e6d311193240baa565f4171000"
+}

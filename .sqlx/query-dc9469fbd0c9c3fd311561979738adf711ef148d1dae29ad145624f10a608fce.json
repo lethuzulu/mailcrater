@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, received_at, from_addr, to_addrs, cc_addrs, subject, body_text, body_html FROM messages WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "received_at",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "from_addr",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "to_addrs",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "cc_addrs",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "subject",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "body_text",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "body_html",
+        "ordinal": 7,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "dc9469fbd0c9c3fd311561979738adf711ef148d1dae29ad145624f10a608fce"
+}

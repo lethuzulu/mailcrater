@@ -1,6 +1,7 @@
-use std::path::Path;
+use std::path::Path as FsPath;
 
 use anyhow::Result;
+use mailcrater::api;
 use mailcrater::config::Config;
 use mailcrater::connection::MailServer;
 use mailcrater::storage::Storage;
@@ -21,15 +22,16 @@ async fn main() -> Result<()> {
     let config = Config::from_env();
     info!(?config, "starting mailcrater");
 
-    let storage = Storage::new(Path::new(&config.data_dir)).await?;
+    let storage = Storage::new(FsPath::new(&config.data_dir)).await?;
 
     let (tx, mut rx) = channel(1024);
 
+    let consumer_storage = storage.clone();
     tokio::spawn(async move {
         loop {
             match rx.recv().await {
-                Some(new_message) => match storage.insert_message(new_message).await {
-                    Ok(()) => {}
+                Some(new_message) => match consumer_storage.insert_message(new_message).await {
+                    Ok(_id) => {}
                     Err(e) => {
                         tracing::error!(?e, "failed to insert message into storage");
                     }
@@ -40,7 +42,20 @@ async fn main() -> Result<()> {
     });
 
     let mail_server = MailServer::new(("127.0.0.1", config.smtp_port), tx).await?;
-    mail_server.serve().await;
+    tokio::spawn(async move {
+        mail_server.serve().await;
+    });
+
+    let app = api::app(storage);
+    let listener = tokio::net::TcpListener::bind(("0.0.0.0", config.http_port)).await?;
+
+    info!(
+        smtp_port = config.smtp_port,
+        http_port = config.http_port,
+        "smtp and http servers listening"
+    );
+
+    axum::serve(listener, app).await?;
 
     Ok(())
 }
