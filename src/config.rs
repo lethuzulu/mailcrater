@@ -1,8 +1,10 @@
+use std::path::PathBuf;
+
 #[derive(Debug)]
 pub struct Config {
     pub smtp_port: u16,
     pub http_port: u16,
-    pub data_dir: String,
+    pub data_dir: PathBuf,
 }
 
 impl Config {
@@ -11,7 +13,7 @@ impl Config {
         Self {
             smtp_port: 1025,
             http_port: 1080,
-            data_dir: "./data".to_string(),
+            data_dir: PathBuf::from("./data"),
         }
     }
 }

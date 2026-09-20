@@ -5,7 +5,8 @@ use lettre::{
 use mailcrater::connection::MailServer;
 
 async fn spawn_test_server() -> u16 {
-    let server = MailServer::new("127.0.0.1:0")
+    let (tx, _rx) = tokio::sync::mpsc::channel(1024);
+    let server = MailServer::new("127.0.0.1:0", tx)
         .await
         .expect("failed to bind test SMTP server");
     let port = server
@@ -36,7 +37,9 @@ async fn accepts_all_phase_1_message_shapes() {
         .to("bob@example.com".parse().unwrap())
         .subject("Reset your password")
         .header(ContentType::TEXT_PLAIN)
-        .body(String::from("Click here to reset: https://myapp.local/reset"))
+        .body(String::from(
+            "Click here to reset: https://myapp.local/reset",
+        ))
         .unwrap();
     let result = transport.send(plain_text).await;
     assert!(result.is_ok(), "plain text send failed: {result:?}");
@@ -66,7 +69,9 @@ async fn accepts_all_phase_1_message_shapes() {
         .cc("admin@example.com".parse().unwrap())
         .subject("Reset your password")
         .header(ContentType::TEXT_PLAIN)
-        .body(String::from("Click here to reset: https://myapp.local/reset"))
+        .body(String::from(
+            "Click here to reset: https://myapp.local/reset",
+        ))
         .unwrap();
     let result = transport.send(multiple_recipients).await;
     assert!(result.is_ok(), "multi-recipient send failed: {result:?}");
