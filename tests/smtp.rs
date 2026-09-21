@@ -4,9 +4,11 @@ use lettre::{
 };
 use mailcrater::connection::MailServer;
 
-async fn spawn_test_server() -> u16 {
+const TEST_MAX_MESSAGE_SIZE: usize = 25 * 1024 * 1024;
+
+async fn spawn_test_server(max_message_size: usize) -> u16 {
     let (tx, _rx) = tokio::sync::mpsc::channel(1024);
-    let server = MailServer::new("127.0.0.1:0", tx)
+    let server = MailServer::new("127.0.0.1:0", tx, max_message_size)
         .await
         .expect("failed to bind test SMTP server");
     let port = server
@@ -29,7 +31,7 @@ fn test_transport(port: u16) -> AsyncSmtpTransport<Tokio1Executor> {
 
 #[tokio::test]
 async fn accepts_all_phase_1_message_shapes() {
-    let port = spawn_test_server().await;
+    let port = spawn_test_server(TEST_MAX_MESSAGE_SIZE).await;
     let transport = test_transport(port);
 
     let plain_text = Message::builder()
@@ -75,4 +77,31 @@ async fn accepts_all_phase_1_message_shapes() {
         .unwrap();
     let result = transport.send(multiple_recipients).await;
     assert!(result.is_ok(), "multi-recipient send failed: {result:?}");
+}
+
+#[tokio::test]
+async fn rejects_oversized_message_with_552() {
+    // 10 bytes: even just the headers blow past this immediately.
+    let port = spawn_test_server(10).await;
+    let transport = test_transport(port);
+
+    let message = Message::builder()
+        .from("no-reply@myapp.local".parse().unwrap())
+        .to("bob@example.com".parse().unwrap())
+        .subject("way too big for the configured limit")
+        .header(ContentType::TEXT_PLAIN)
+        .body(String::from(
+            "this body is definitely longer than 10 bytes",
+        ))
+        .unwrap();
+
+    let result = transport.send(message).await;
+    assert!(
+        result.is_err(),
+        "oversized message should have been rejected: {result:?}"
+    );
+
+    let err = result.unwrap_err();
+    let code: Option<u16> = err.status().map(u16::from);
+    assert_eq!(code, Some(552), "expected a 552 rejection, got: {err:?}");
 }

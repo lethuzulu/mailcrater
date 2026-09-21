@@ -1,5 +1,5 @@
 use mail_parser::MessageParser;
-use mailin::{Handler, Response, response::OK};
+use mailin::{Action, Handler, Response, response::OK};
 use tokio::sync::mpsc::Sender;
 use std::io::Result;
 use tracing::{error, info};
@@ -10,26 +10,44 @@ use crate::message::NewMessage;
 pub struct MailHandler {
     buffer: Vec<u8>,
     message_parser: MessageParser,
-    sender: Sender<NewMessage>
+    sender: Sender<NewMessage>,
+    max_message_size: usize,
+    oversized: bool,
 }
 
 impl MailHandler {
-    pub fn new(sender: Sender<NewMessage>) -> Self {
+    pub fn new(sender: Sender<NewMessage>, max_message_size: usize) -> Self {
         Self {
             buffer: Vec::new(),
             message_parser: MessageParser::new(),
-            sender
+            sender,
+            max_message_size,
+            oversized: false,
         }
     }
 }
 
 impl Handler for MailHandler {
     fn data(&mut self, _buf: &[u8]) -> Result<()> {
-        self.buffer.extend_from_slice(_buf);
+        // Once oversized, stop growing the buffer — the client still sends
+        // the rest of the message (SMTP has no way to tell it to stop midway)
+        if self.buffer.len() + _buf.len() > self.max_message_size {
+            self.oversized = true;
+        } else {
+            self.buffer.extend_from_slice(_buf);
+        }
         Ok(())
     }
 
     fn data_end(&mut self) -> Response {
+        if self.oversized {
+            self.buffer.clear();
+            self.oversized = false;
+            let mut response = Response::custom(552, "5.3.4 Message too large".to_string());
+            response.action = Action::Close;
+            return response;
+        }
+
         // parse the self.buffer
         let message = self.message_parser.parse(&self.buffer);
         match message {
@@ -54,7 +72,9 @@ impl Handler for MailHandler {
             None => {
                 error!("failed to parse message: invalid or malformed data");
                 self.buffer.clear();
-                Response::custom(500, "Error parsing message".to_string())
+                let mut response = Response::custom(500, "Error parsing message".to_string());
+                response.action = Action::Close;
+                response
             }
         }
     }

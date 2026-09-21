@@ -21,10 +21,14 @@ pub struct MailServer {
 }
 
 impl MailServer {
-    pub async fn new(address: impl ToSocketAddrs, sender: Sender<NewMessage>) -> Result<Self> {
+    pub async fn new(
+        address: impl ToSocketAddrs,
+        sender: Sender<NewMessage>,
+        max_message_size: usize,
+    ) -> Result<Self> {
         let inner = TcpListener::bind(address).await?;
         let session_builder = Arc::new(SessionBuilder::new("mailcrater"));
-        let mail_handler = MailHandler::new(sender);
+        let mail_handler = MailHandler::new(sender, max_message_size);
         Ok(Self {
             inner,
             session_builder,

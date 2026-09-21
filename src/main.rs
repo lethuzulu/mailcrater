@@ -41,7 +41,12 @@ async fn main() -> Result<()> {
         }
     });
 
-    let mail_server = MailServer::new(("127.0.0.1", config.smtp_port), tx).await?;
+    let mail_server = MailServer::new(
+        ("127.0.0.1", config.smtp_port),
+        tx,
+        config.max_message_size,
+    )
+    .await?;
     tokio::spawn(async move {
         mail_server.serve().await;
     });
