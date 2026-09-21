@@ -6,6 +6,7 @@ pub struct Config {
     pub http_port: u16,
     pub data_dir: PathBuf,
     pub max_message_size: usize,
+    pub channel_capacity: usize
 }
 
 impl Config {
@@ -17,6 +18,7 @@ impl Config {
             data_dir: PathBuf::from("./data"),
             // 25 MB, matching real-world provider limits (Gmail ~25MB)
             max_message_size: 25 * 1024 * 1024,
+            channel_capacity: 1024
         }
     }
 }

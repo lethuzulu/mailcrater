@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use mailcrater::api;
-use mailcrater::message::{NewAttachment, NewMessage};
+use mailcrater::message::{Attachment, MailMessage};
 use mailcrater::storage::Storage;
 use reqwest::StatusCode;
 
@@ -45,8 +45,8 @@ async fn spawn_test_server() -> (String, Storage, TestDir) {
     (format!("http://{addr}"), storage, TestDir(dir))
 }
 
-fn sample_message(subject: &str, from_addr: &str) -> NewMessage {
-    NewMessage {
+fn sample_message(subject: &str, from_addr: &str) -> MailMessage {
+    MailMessage {
         from_addr: from_addr.to_string(),
         to_addrs: vec!["bob@example.com".to_string()],
         cc_addrs: vec![],
@@ -55,7 +55,7 @@ fn sample_message(subject: &str, from_addr: &str) -> NewMessage {
         body_html: None,
         raw_size: 5,
         raw_source: b"hello".to_vec(),
-        attachments: vec![NewAttachment {
+        attachments: vec![Attachment {
             filename: Some("receipt.txt".to_string()),
             content_type: Some("text/plain".to_string()),
             size: 5,

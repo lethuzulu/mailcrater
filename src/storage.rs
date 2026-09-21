@@ -7,7 +7,7 @@ use sqlx::{SqlitePool, sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteP
 use tracing::info;
 use uuid::Uuid;
 
-use crate::message::NewMessage;
+use crate::message::MailMessage;
 
 #[derive(Clone)]
 pub struct Storage {
@@ -103,8 +103,8 @@ impl Storage {
         Ok(Self { pool })
     }
 
-    pub async fn insert_message(&self, msg: NewMessage) -> Result<String> {
-        let NewMessage {
+    pub async fn insert_message(&self, msg: MailMessage) -> Result<String> {
+        let MailMessage {
             from_addr,
             to_addrs,
             cc_addrs,

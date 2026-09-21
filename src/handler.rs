@@ -4,19 +4,19 @@ use tokio::sync::mpsc::Sender;
 use std::io::Result;
 use tracing::{error, info};
 
-use crate::message::NewMessage;
+use crate::message::MailMessage;
 
 #[derive(Clone)]
 pub struct MailHandler {
     buffer: Vec<u8>,
     message_parser: MessageParser,
-    sender: Sender<NewMessage>,
+    sender: Sender<MailMessage>,
     max_message_size: usize,
     oversized: bool,
 }
 
 impl MailHandler {
-    pub fn new(sender: Sender<NewMessage>, max_message_size: usize) -> Self {
+    pub fn new(sender: Sender<MailMessage>, max_message_size: usize) -> Self {
         Self {
             buffer: Vec::new(),
             message_parser: MessageParser::new(),
@@ -48,14 +48,14 @@ impl Handler for MailHandler {
             return response;
         }
 
-        // parse the self.buffer
+        // parse the self.buffer (DATA)
         let message = self.message_parser.parse(&self.buffer);
         match message {
             Some(message) => {
                 info!(?message, "received message");
 
                 let raw_size = self.buffer.len();
-                let mut new_message = NewMessage::from(&message);
+                let mut new_message = MailMessage::from(&message);
 
                 new_message.raw_size = raw_size;
                 new_message.raw_source = std::mem::take(&mut self.buffer); // use mem::take to take ownership of the data buffer and clear it in one call

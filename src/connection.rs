@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 
 use crate::handler::MailHandler;
-use crate::message::NewMessage;
+use crate::message::MailMessage;
 use anyhow::Result;
 use mailin::{Action, Response, SessionBuilder};
 use tokio::io::{AsyncBufReadExt, AsyncWrite};
@@ -23,7 +23,7 @@ pub struct MailServer {
 impl MailServer {
     pub async fn new(
         address: impl ToSocketAddrs,
-        sender: Sender<NewMessage>,
+        sender: Sender<MailMessage>,
         max_message_size: usize,
     ) -> Result<Self> {
         let inner = TcpListener::bind(address).await?;

@@ -1,7 +1,7 @@
 use mail_parser::{Message, MessagePart, MimeHeaders};
 
 #[derive(Debug)]
-pub struct NewMessage {
+pub struct MailMessage {
     pub from_addr: String,
     pub to_addrs: Vec<String>,
     pub cc_addrs: Vec<String>,
@@ -10,18 +10,18 @@ pub struct NewMessage {
     pub body_html: Option<String>,
     pub raw_size: usize,
     pub raw_source: Vec<u8>,
-    pub attachments: Vec<NewAttachment>,
+    pub attachments: Vec<Attachment>,
 }
 
 #[derive(Debug)]
-pub struct NewAttachment {
+pub struct Attachment {
     pub filename: Option<String>,
     pub content_type: Option<String>,
     pub size: usize,
     pub data: Vec<u8>,
 }
 
-impl From<&Message<'_>> for NewMessage {
+impl From<&Message<'_>> for MailMessage {
     fn from(message: &Message<'_>) -> Self {
         let from_addr = match message.from() {
             Some(address) => match address.first() {
@@ -80,10 +80,10 @@ impl From<&Message<'_>> for NewMessage {
 
         let mut attachments = Vec::new();
         for part in message.attachments() {
-            attachments.push(NewAttachment::from(part));
+            attachments.push(Attachment::from(part));
         }
 
-        NewMessage {
+        MailMessage {
             from_addr,
             to_addrs,
             cc_addrs,
@@ -97,7 +97,7 @@ impl From<&Message<'_>> for NewMessage {
     }
 }
 
-impl From<&MessagePart<'_>> for NewAttachment {
+impl From<&MessagePart<'_>> for Attachment {
     fn from(part: &MessagePart<'_>) -> Self {
         let filename = match part.attachment_name() {
             Some(name) => Some(name.to_string()),
@@ -115,7 +115,7 @@ impl From<&MessagePart<'_>> for NewAttachment {
             None => None,
         };
 
-        NewAttachment {
+        Attachment {
             filename,
             content_type,
             size: part.len(),

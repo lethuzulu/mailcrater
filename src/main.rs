@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
 
     let storage = Storage::new(FsPath::new(&config.data_dir)).await?;
 
-    let (tx, mut rx) = channel(1024);
+    let (tx, mut rx) = channel(config.channel_capacity);
 
     let consumer_storage = storage.clone();
     tokio::spawn(async move {
