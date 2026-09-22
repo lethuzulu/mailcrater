@@ -2,7 +2,7 @@ use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     message::{Attachment, MultiPart, SinglePart, header::ContentType},
 };
-use mailcrater::connection::MailServer;
+use mailcrater_core::connection::MailServer;
 
 const TEST_MAX_MESSAGE_SIZE: usize = 25 * 1024 * 1024;
 

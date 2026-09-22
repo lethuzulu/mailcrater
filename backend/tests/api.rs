@@ -1,8 +1,8 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use mailcrater::api;
-use mailcrater::message::{Attachment, MailMessage};
-use mailcrater::storage::Storage;
+use backend::api;
+use backend::storage::Storage;
+use mailcrater_core::message::{Attachment, MailMessage};
 use reqwest::StatusCode;
 
 static TEST_COUNTER: AtomicU32 = AtomicU32::new(0);

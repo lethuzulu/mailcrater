@@ -7,7 +7,7 @@ use sqlx::{SqlitePool, sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteP
 use tracing::info;
 use uuid::Uuid;
 
-use crate::message::MailMessage;
+use mailcrater_core::message::MailMessage;
 
 #[derive(Clone)]
 pub struct Storage {

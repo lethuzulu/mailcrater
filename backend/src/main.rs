@@ -1,10 +1,10 @@
 use std::path::Path as FsPath;
 
 use anyhow::Result;
-use mailcrater::api;
-use mailcrater::config::Config;
-use mailcrater::connection::MailServer;
-use mailcrater::storage::Storage;
+use backend::api;
+use backend::config::Config;
+use backend::storage::Storage;
+use mailcrater_core::connection::MailServer;
 
 use tokio::sync::mpsc::channel;
 use tracing::info;
