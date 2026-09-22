@@ -1,0 +1,12 @@
+[build]
+target = "index.html"
+
+[watch]
+watch = ["src", "index.html"]
+
+[serve]
+port = 8080
+
+[[proxy]]
+rewrite = "/api"
+backend = "http://127.0.0.1:1080/api"
