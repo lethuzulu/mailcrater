@@ -455,8 +455,10 @@ name = "mailcrater-frontend"
 version = "0.1.0"
 dependencies = [
  "gloo-net 0.7.0",
+ "js-sys",
  "serde",
  "serde_json",
+ "web-sys",
  "yew",
 ]
 
