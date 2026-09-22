@@ -78,11 +78,10 @@ async fn handle_connection(
 
     // read a line
     let mut buf_reader = BufReader::new(stream);
-    let mut line = String::new();
+    let mut line:Vec<u8> = Vec::new();
 
     loop {
-        match buf_reader.read_line(&mut line).await {
-            // TODO: currently reads utf-8, change to read raw bytes later
+        match buf_reader.read_until(b'\n', &mut line).await {
             Ok(0) => break,
             Ok(_) => {}
             Err(e) => {
@@ -90,7 +89,7 @@ async fn handle_connection(
                 break;
             }
         }
-        let response = session.process(line.as_bytes());
+        let response = session.process(&line);
         line.clear(); // clear the line after for next iteration or else it would be a growing blob
         match response.action {
             Action::Reply => {
