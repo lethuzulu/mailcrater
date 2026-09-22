@@ -2,37 +2,17 @@ use std::{fs::create_dir_all, path::Path};
 
 use anyhow::Result;
 use chrono::Utc;
-use serde::Serialize;
 use sqlx::{SqlitePool, sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions}};
 use tracing::info;
 use uuid::Uuid;
 
 use mailcrater_core::message::MailMessage;
 
+use crate::types::{AttachmentDownload, AttachmentMeta, MessageDetail, MessageSummary};
+
 #[derive(Clone)]
 pub struct Storage {
     pub pool: SqlitePool,
-}
-
-#[derive(Serialize)]
-pub struct MessageDetail {
-    pub id: String,
-    pub received_at: String,
-    pub from_addr: String,
-    pub to_addrs: Vec<String>,
-    pub cc_addrs: Vec<String>,
-    pub subject: Option<String>,
-    pub body_text: Option<String>,
-    pub body_html: Option<String>,
-    pub attachments: Vec<AttachmentMeta>,
-}
-
-#[derive(Serialize)]
-pub struct AttachmentMeta {
-    pub id: String,
-    pub filename: Option<String>,
-    pub content_type: Option<String>,
-    pub size: i64,
 }
 
 struct MessageRow {
@@ -53,27 +33,12 @@ struct AttachmentRow {
     size: i64,
 }
 
-#[derive(Serialize)]
-pub struct MessageSummary {
-    pub id: String,
-    pub received_at: String,
-    pub from_addr: String,
-    pub to_addrs: Vec<String>,
-    pub subject: Option<String>,
-}
-
 struct MessageSummaryRow {
     id: String,
     received_at: String,
     from_addr: String,
     to_addrs: String,
     subject: Option<String>,
-}
-
-pub struct AttachmentDownload {
-    pub filename: Option<String>,
-    pub content_type: Option<String>,
-    pub data: Vec<u8>,
 }
 
 struct AttachmentDownloadRow {
@@ -237,15 +202,17 @@ impl Storage {
             Some(search) => {
                 let pattern = format!("%{}%", search);
                 let subject_pattern = pattern.clone();
-                let from_addr_pattern = pattern;
+                let from_addr_pattern = pattern.clone();
+                let to_addrs_pattern = pattern;
                 sqlx::query_as!(
                     MessageSummaryRow,
                     "SELECT id, received_at, from_addr, to_addrs, subject FROM messages
-                     WHERE subject LIKE ? OR from_addr LIKE ?
+                     WHERE subject LIKE ? OR from_addr LIKE ? OR to_addrs LIKE ?
                      ORDER BY received_at DESC
                      LIMIT ? OFFSET ?",
                     subject_pattern,
                     from_addr_pattern,
+                    to_addrs_pattern,
                     limit,
                     offset,
                 )
@@ -279,6 +246,32 @@ impl Storage {
         }
 
         Ok(messages)
+    }
+
+    pub async fn count_messages(&self, search: Option<&str>) -> Result<i64> {
+        let count = match search {
+            Some(search) => {
+                let pattern = format!("%{}%", search);
+                let subject_pattern = pattern.clone();
+                let from_addr_pattern = pattern.clone();
+                let to_addrs_pattern = pattern;
+                sqlx::query_scalar!(
+                    "SELECT COUNT(*) FROM messages WHERE subject LIKE ? OR from_addr LIKE ? OR to_addrs LIKE ?",
+                    subject_pattern,
+                    from_addr_pattern,
+                    to_addrs_pattern,
+                )
+                .fetch_one(&self.pool)
+                .await?
+            }
+            None => {
+                sqlx::query_scalar!("SELECT COUNT(*) FROM messages")
+                    .fetch_one(&self.pool)
+                    .await?
+            }
+        };
+
+        Ok(count)
     }
 
     pub async fn get_raw_source(&self, id: &str) -> Result<Option<Vec<u8>>> {

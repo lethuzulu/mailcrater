@@ -73,7 +73,8 @@ async fn version_endpoint_returns_crate_version() {
         .expect("request failed");
 
     assert_eq!(response.status(), StatusCode::OK);
-    assert_eq!(response.text().await.unwrap(), env!("CARGO_PKG_VERSION"));
+    let body: serde_json::Value = response.json().await.expect("parse json");
+    assert_eq!(body["version"], env!("CARGO_PKG_VERSION"));
 }
 
 #[tokio::test]
@@ -85,6 +86,8 @@ async fn get_message_returns_404_for_unknown_id() {
         .expect("request failed");
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let body: serde_json::Value = response.json().await.expect("parse json");
+    assert_eq!(body["error"], "message not found");
 }
 
 #[tokio::test]
@@ -121,7 +124,10 @@ async fn message_lifecycle_across_every_endpoint() {
         .json()
         .await
         .expect("parse json");
-    assert_eq!(list.as_array().unwrap().len(), 1);
+    assert_eq!(list["messages"].as_array().unwrap().len(), 1);
+    assert_eq!(list["total"], 1);
+    assert_eq!(list["limit"], 50);
+    assert_eq!(list["offset"], 0);
 
     // GET /api/messages?search=... (matching and non-matching)
     let matching: serde_json::Value = client
@@ -132,7 +138,8 @@ async fn message_lifecycle_across_every_endpoint() {
         .json()
         .await
         .expect("parse json");
-    assert_eq!(matching.as_array().unwrap().len(), 1);
+    assert_eq!(matching["messages"].as_array().unwrap().len(), 1);
+    assert_eq!(matching["total"], 1);
 
     let non_matching: serde_json::Value = client
         .get(format!("{base_url}/api/messages?search=nothing-matches-this"))
@@ -142,7 +149,20 @@ async fn message_lifecycle_across_every_endpoint() {
         .json()
         .await
         .expect("parse json");
-    assert_eq!(non_matching.as_array().unwrap().len(), 0);
+    assert_eq!(non_matching["messages"].as_array().unwrap().len(), 0);
+    assert_eq!(non_matching["total"], 0);
+
+    // search matches a recipient (to_addrs), not just subject/from_addr
+    let by_recipient: serde_json::Value = client
+        .get(format!("{base_url}/api/messages?search=bob@example.com"))
+        .send()
+        .await
+        .expect("request failed")
+        .json()
+        .await
+        .expect("parse json");
+    assert_eq!(by_recipient["messages"].as_array().unwrap().len(), 1);
+    assert_eq!(by_recipient["total"], 1);
 
     // GET /api/messages?limit=-1 -> 400
     let bad_limit = client
@@ -151,6 +171,8 @@ async fn message_lifecycle_across_every_endpoint() {
         .await
         .expect("request failed");
     assert_eq!(bad_limit.status(), StatusCode::BAD_REQUEST);
+    let bad_limit_body: serde_json::Value = bad_limit.json().await.expect("parse json");
+    assert_eq!(bad_limit_body["error"], "limit must not be negative");
 
     // GET /api/messages/:id/raw
     let raw = client
@@ -253,5 +275,6 @@ async fn delete_all_clears_every_message() {
         .json()
         .await
         .expect("parse json");
-    assert_eq!(list.as_array().unwrap().len(), 0);
+    assert_eq!(list["messages"].as_array().unwrap().len(), 0);
+    assert_eq!(list["total"], 0);
 }
