@@ -5,8 +5,8 @@
     <title>MailCrater</title>
     
 <script type="module">
-import init, * as bindings from '/mailcrater-frontend-b487a37506d721d2.js';
-const wasm = await init({ module_or_path: '/mailcrater-frontend-b487a37506d721d2_bg.wasm' });
+import init, * as bindings from '/mailcrater-frontend-119c5b605a860e64.js';
+const wasm = await init({ module_or_path: '/mailcrater-frontend-119c5b605a860e64_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -15,7 +15,7 @@ window.wasmBindings = bindings;
 dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 
 </script>
-  <link rel="modulepreload" href="/mailcrater-frontend-b487a37506d721d2.js" crossorigin="anonymous" integrity="sha384-97gsiFxfZe3e0zXEe6oOT2dICNy9wH4Bu6lKxnlNkrGICVsCETdKSLN+innHpS8t"><link rel="preload" href="/mailcrater-frontend-b487a37506d721d2_bg.wasm" crossorigin="anonymous" integrity="sha384-SbV0skehqwUZqZ4plivi/VUmLHDPwln6nghUPAsoqwsliRV8/21JhqvNkBgIYYPX" as="fetch" type="application/wasm"></head>
+  <link rel="modulepreload" href="/mailcrater-frontend-119c5b605a860e64.js" crossorigin="anonymous" integrity="sha384-svNH5XZKZdTsvYJTcU2RcNV4IEQaxsKfrpLbKv/0pQBwfdQA3GxUo9qC9bK7VaqN"><link rel="preload" href="/mailcrater-frontend-119c5b605a860e64_bg.wasm" crossorigin="anonymous" integrity="sha384-Md0eUXxoEmE592Lwk1zOgPLJGoK91SYbA4e9m5hKjfPhzUXTaKhVxCOGc5hiTspX" as="fetch" type="application/wasm"></head>
   <body><script>"use strict";
 
 (function () {
@@ -114,10 +114,7 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
         onclose() {
             window.setTimeout(
                 () => {
-                    // when we successfully reconnect, we'll force a
-                    // reload (since we presumably lost connection to
-                    // trunk due to it being killed, so it will have
-                    // rebuilt on restart)
+
                     const ws = new WebSocket(this.url);
                     ws.onopen = () => window.location.reload();
                     ws.onclose = () => this.onclose();

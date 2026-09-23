@@ -1,5 +1,7 @@
+mod message_detail;
 mod message_list;
 
+use message_detail::MessageDetailView;
 use message_list::MessageList;
 use serde::Deserialize;
 use yew::prelude::*;
@@ -19,6 +21,7 @@ enum VersionState {
 #[function_component(App)]
 fn app() -> Html {
     let version = use_state(|| VersionState::Loading);
+    let selected_id = use_state(|| None::<String>);
 
     {
         let version = version.clone();
@@ -41,11 +44,22 @@ fn app() -> Html {
         VersionState::Failed(e) => format!("failed to reach backend: {e}"),
     };
 
+    let on_select = {
+        let selected_id = selected_id.clone();
+        Callback::from(move |id: String| selected_id.set(Some(id)))
+    };
+
+    let detail = match &*selected_id {
+        Some(id) => html! { <MessageDetailView id={id.clone()} /> },
+        None => html! {},
+    };
+
     html! {
         <main>
             <h1>{ "MailCrater" }</h1>
             <p>{ status }</p>
-            <MessageList />
+            <MessageList on_select={on_select} />
+            { detail }
         </main>
     }
 }

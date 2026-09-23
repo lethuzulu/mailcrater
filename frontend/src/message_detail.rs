@@ -1,0 +1,185 @@
+use serde::Deserialize;
+use yew::prelude::*;
+
+#[derive(Deserialize, Clone, PartialEq)]
+struct AttachmentMeta {
+    id: String,
+    filename: Option<String>,
+    content_type: Option<String>,
+    size: i64,
+}
+
+#[derive(Deserialize, Clone, PartialEq)]
+struct MessageDetail {
+    id: String,
+    received_at: String,
+    from_addr: String,
+    to_addrs: Vec<String>,
+    cc_addrs: Vec<String>,
+    subject: Option<String>,
+    body_text: Option<String>,
+    body_html: Option<String>,
+    attachments: Vec<AttachmentMeta>,
+}
+
+#[derive(Deserialize)]
+struct ErrorBody {
+    error: String,
+}
+
+#[derive(Clone, PartialEq)]
+enum DetailState {
+    Loading,
+    Loaded(MessageDetail),
+    Failed(String),
+}
+
+
+#[derive(Clone, Copy, PartialEq)]
+enum BodyTab {
+    Html,
+    Plain,
+}
+
+async fn fetch_detail(id: String) -> DetailState {
+    let url = format!("/api/messages/{id}");
+
+    let response = match gloo_net::http::Request::get(&url).send().await {
+        Ok(response) => response,
+        Err(e) => return DetailState::Failed(e.to_string()),
+    };
+
+    match response.ok() {
+        true => match response.json::<MessageDetail>().await {
+            Ok(body) => DetailState::Loaded(body),
+            Err(e) => DetailState::Failed(e.to_string()),
+        },
+        false => match response.json::<ErrorBody>().await {
+            Ok(body) => DetailState::Failed(body.error),
+            Err(_) => DetailState::Failed(format!("request failed: {}", response.status())),
+        },
+    }
+}
+
+#[derive(Properties, PartialEq)]
+pub struct MessageDetailProps {
+    pub id: String,
+}
+
+#[function_component(MessageDetailView)]
+pub fn message_detail_view(props: &MessageDetailProps) -> Html {
+    let state = use_state(|| DetailState::Loading);
+    let tab = use_state(|| BodyTab::Html);
+
+    {
+        let state = state.clone();
+        let tab = tab.clone();
+        let id = props.id.clone();
+        use_effect_with(id.clone(), move |_| {
+            state.set(DetailState::Loading);
+            let state = state.clone();
+            let tab = tab.clone();
+            yew::platform::spawn_local(async move {
+                let result = fetch_detail(id).await;
+                if let DetailState::Loaded(detail) = &result {
+                    let default_tab = match detail.body_html.is_some() {
+                        true => BodyTab::Html,
+                        false => BodyTab::Plain,
+                    };
+                    tab.set(default_tab);
+                }
+                state.set(result);
+            });
+        });
+    }
+
+    match &*state {
+        DetailState::Loading => html! { <p>{ "Loading message..." }</p> },
+        DetailState::Failed(error) => html! { <p>{ format!("Error: {error}") }</p> },
+        DetailState::Loaded(detail) => render_detail(detail, &tab),
+    }
+}
+
+fn render_detail(detail: &MessageDetail, tab: &UseStateHandle<BodyTab>) -> Html {
+    let raw_url = format!("/api/messages/{}/raw", detail.id);
+
+    let on_html_tab = {
+        let tab = tab.clone();
+        Callback::from(move |_: MouseEvent| tab.set(BodyTab::Html))
+    };
+    let on_plain_tab = {
+        let tab = tab.clone();
+        Callback::from(move |_: MouseEvent| tab.set(BodyTab::Plain))
+    };
+
+    let body = match **tab {
+        BodyTab::Html => match &detail.body_html {
+            Some(html_body) => html! { <iframe sandbox="" srcdoc={html_body.clone()}></iframe> },
+            None => html! { <p>{ "No HTML body." }</p> },
+        },
+        BodyTab::Plain => match &detail.body_text {
+            Some(text) => html! { <pre>{ text }</pre> },
+            None => html! { <p>{ "No plain text body." }</p> },
+        },
+    };
+
+    html! {
+        <div>
+            <table>
+                <tbody>
+                    <tr><td>{ "From" }</td><td>{ &detail.from_addr }</td></tr>
+                    <tr><td>{ "To" }</td><td>{ detail.to_addrs.join(", ") }</td></tr>
+                    { render_cc(detail) }
+                    <tr><td>{ "Subject" }</td><td>{ detail.subject.clone().unwrap_or_default() }</td></tr>
+                    <tr><td>{ "Received" }</td><td>{ &detail.received_at }</td></tr>
+                </tbody>
+            </table>
+            <div>
+                <button onclick={on_html_tab}>{ "HTML" }</button>
+                <button onclick={on_plain_tab}>{ "Plain" }</button>
+                <a href={raw_url} target="_blank">{ "Raw" }</a>
+            </div>
+            { body }
+            { render_attachments(detail) }
+        </div>
+    }
+}
+
+fn render_cc(detail: &MessageDetail) -> Html {
+    match detail.cc_addrs.is_empty() {
+        true => html! {},
+        false => html! { <tr><td>{ "Cc" }</td><td>{ detail.cc_addrs.join(", ") }</td></tr> },
+    }
+}
+
+fn render_attachments(detail: &MessageDetail) -> Html {
+    match detail.attachments.is_empty() {
+        true => html! {},
+        false => html! {
+            <div>
+                <h3>{ "Attachments" }</h3>
+                <ul>
+                    { for detail.attachments.iter().map(|a| render_attachment(&detail.id, a)) }
+                </ul>
+            </div>
+        },
+    }
+}
+
+fn render_attachment(message_id: &str, attachment: &AttachmentMeta) -> Html {
+    let url = format!("/api/messages/{message_id}/attachments/{}", attachment.id);
+    let filename = match &attachment.filename {
+        Some(name) => name.clone(),
+        None => "attachment".to_string(),
+    };
+    let content_type = match &attachment.content_type {
+        Some(content_type) => content_type.clone(),
+        None => "unknown type".to_string(),
+    };
+
+    html! {
+        <li key={attachment.id.clone()}>
+            <a href={url}>{ format!("{filename} ({content_type}, {} bytes)", attachment.size) }</a>
+        </li>
+    }
+}

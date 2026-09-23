@@ -63,8 +63,13 @@ fn run_fetch(state: UseStateHandle<ListState>, search: String) {
     });
 }
 
+#[derive(Properties, PartialEq)]
+pub struct MessageListProps {
+    pub on_select: Callback<String>,
+}
+
 #[function_component(MessageList)]
-pub fn message_list() -> Html {
+pub fn message_list(props: &MessageListProps) -> Html {
     let state = use_state(|| ListState::Loading);
     let search = use_state(String::new);
 
@@ -107,12 +112,12 @@ pub fn message_list() -> Html {
                 />
                 <button onclick={on_refresh}>{ "Refresh" }</button>
             </div>
-            { render_body(&state) }
+            { render_body(&state, &props.on_select) }
         </div>
     }
 }
 
-fn render_body(state: &ListState) -> Html {
+fn render_body(state: &ListState, on_select: &Callback<String>) -> Html {
     match state {
         ListState::Loading => html! { <p>{ "Loading..." }</p> },
         ListState::Failed(error) => html! { <p>{ format!("Error: {error}") }</p> },
@@ -130,7 +135,7 @@ fn render_body(state: &ListState) -> Html {
                             </tr>
                         </thead>
                         <tbody>
-                            { for response.messages.iter().map(render_row) }
+                            { for response.messages.iter().map(|m| render_row(m, on_select)) }
                         </tbody>
                     </table>
                 </>
@@ -139,14 +144,18 @@ fn render_body(state: &ListState) -> Html {
     }
 }
 
-fn render_row(message: &MessageSummary) -> Html {
+fn render_row(message: &MessageSummary, on_select: &Callback<String>) -> Html {
     let subject = match &message.subject {
         Some(subject) => subject.clone(),
         None => String::new(),
     };
 
+    let id = message.id.clone();
+    let on_select = on_select.clone();
+    let onclick = Callback::from(move |_: MouseEvent| on_select.emit(id.clone()));
+
     html! {
-        <tr key={message.id.clone()}>
+        <tr key={message.id.clone()} onclick={onclick} style="cursor: pointer;">
             <td>{ &message.from_addr }</td>
             <td>{ subject }</td>
             <td>{ &message.received_at }</td>
