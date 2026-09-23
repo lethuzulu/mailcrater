@@ -22,6 +22,7 @@ enum VersionState {
 fn app() -> Html {
     let version = use_state(|| VersionState::Loading);
     let selected_id = use_state(|| None::<String>);
+    let refresh_signal = use_state(|| 0u32);
 
     {
         let version = version.clone();
@@ -49,18 +50,38 @@ fn app() -> Html {
         Callback::from(move |id: String| selected_id.set(Some(id)))
     };
 
+
+    let on_deleted = {
+        let selected_id = selected_id.clone();
+        let refresh_signal = refresh_signal.clone();
+        Callback::from(move |()| {
+            selected_id.set(None);
+            refresh_signal.set(*refresh_signal + 1);
+        })
+    };
+
     let detail = match &*selected_id {
-        Some(id) => html! { <MessageDetailView id={id.clone()} /> },
-        None => html! {},
+        Some(id) => html! { <MessageDetailView id={id.clone()} on_deleted={on_deleted} /> },
+        None => html! { <p class="empty-state">{ "Select a message to view it." }</p> },
     };
 
     html! {
-        <main>
-            <h1>{ "MailCrater" }</h1>
-            <p>{ status }</p>
-            <MessageList on_select={on_select} />
-            { detail }
-        </main>
+        <div class="app">
+            <header class="app-header">
+                <h1><span class="brand-mail">{ "Mail" }</span><span class="brand-crater">{ "Crater" }</span></h1>
+                <span class="version-status">{ status }</span>
+            </header>
+            <div class="app-body">
+                <MessageList
+                    on_select={on_select}
+                    selected_id={(*selected_id).clone()}
+                    refresh_signal={*refresh_signal}
+                />
+                <main class="detail-pane">
+                    { detail }
+                </main>
+            </div>
+        </div>
     }
 }
 

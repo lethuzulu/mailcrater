@@ -1,0 +1,327 @@
+:root {
+  --accent: #e8622c;
+  --accent-contrast: #ffffff;
+  --bg: #ffffff;
+  --bg-secondary: #f7f5f3;
+  --text: #1a1a1a;
+  --text-muted: #6b6b6b;
+  --border: #e5e0db;
+  --row-selected: #fdf0ea;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141414;
+    --bg-secondary: #1c1c1c;
+    --text: #f0f0f0;
+    --text-muted: #9a9a9a;
+    --border: #2a2a2a;
+    --row-selected: #2a1f18;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a {
+  color: var(--accent);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.brand-crater {
+  color: var(--accent);
+}
+
+.version-status {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Sidebar (message list) */
+
+.sidebar {
+  width: 400px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-controls {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.sidebar-total {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-message {
+  padding: 1.5rem 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.sidebar-message.error {
+  color: var(--accent);
+}
+
+.message-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.message-row {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.message-row:hover {
+  background: var(--bg-secondary);
+}
+
+.message-row.selected {
+  background: var(--row-selected);
+}
+
+.message-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.message-row-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.message-row-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.message-from {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-received {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.message-subject {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-to {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Detail pane */
+
+.detail-pane {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 1rem 1.5rem;
+}
+
+.empty-state {
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 3rem;
+}
+
+.message-meta {
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.message-meta td {
+  padding: 0.3rem 0.75rem 0.3rem 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.message-meta td:first-child {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.tab {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.delete-button {
+  margin-left: auto;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.delete-button:hover {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.body-container {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  min-height: 200px;
+}
+
+.body-frame {
+  width: 100%;
+  min-height: 300px;
+  border: none;
+  background: white;
+}
+
+.body-plain {
+  margin: 0;
+  padding: 1rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.body-empty {
+  padding: 1rem;
+  color: var(--text-muted);
+}
+
+.attachments {
+  margin-top: 1rem;
+}
+
+.attachments h3 {
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+}
+
+.attachments ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.attachments li {
+  padding: 0.3rem 0;
+}
+
+/* Buttons in the sidebar controls (Refresh / Delete all) */
+
+.sidebar-controls button {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.sidebar-controls button:hover {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}

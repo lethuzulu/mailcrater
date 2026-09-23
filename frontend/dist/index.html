@@ -2,11 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MailCrater</title>
+    <link rel="stylesheet" href="/style-78bd63b4b5eca785.css" integrity="sha384-WCHdyUiTS1EHRCF1r2XVY814/O26MkArZ4klCMpGAhd0xTCFNNwckMKQ7ZU9YpGX"/>
     
 <script type="module">
-import init, * as bindings from '/mailcrater-frontend-119c5b605a860e64.js';
-const wasm = await init({ module_or_path: '/mailcrater-frontend-119c5b605a860e64_bg.wasm' });
+import init, * as bindings from '/mailcrater-frontend-16b17ddd4d9a39e5.js';
+const wasm = await init({ module_or_path: '/mailcrater-frontend-16b17ddd4d9a39e5_bg.wasm' });
 
 
 window.wasmBindings = bindings;
@@ -15,7 +17,7 @@ window.wasmBindings = bindings;
 dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
 
 </script>
-  <link rel="modulepreload" href="/mailcrater-frontend-119c5b605a860e64.js" crossorigin="anonymous" integrity="sha384-svNH5XZKZdTsvYJTcU2RcNV4IEQaxsKfrpLbKv/0pQBwfdQA3GxUo9qC9bK7VaqN"><link rel="preload" href="/mailcrater-frontend-119c5b605a860e64_bg.wasm" crossorigin="anonymous" integrity="sha384-Md0eUXxoEmE592Lwk1zOgPLJGoK91SYbA4e9m5hKjfPhzUXTaKhVxCOGc5hiTspX" as="fetch" type="application/wasm"></head>
+  <link rel="modulepreload" href="/mailcrater-frontend-16b17ddd4d9a39e5.js" crossorigin="anonymous" integrity="sha384-ZfPt0Nr3aeM3X4eDGWEmvis55oL0BJrWFa/iEwXgx7eDthSvYkf4+ymWjAaH0z3+"><link rel="preload" href="/mailcrater-frontend-16b17ddd4d9a39e5_bg.wasm" crossorigin="anonymous" integrity="sha384-0AHhXlgZ9FlwkWhzjsuXVzbS+2hHA7itlRvht/lIUcu2JG2xJlefkTwD0FyDI3+b" as="fetch" type="application/wasm"></head>
   <body><script>"use strict";
 
 (function () {
@@ -114,7 +116,10 @@ dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
         onclose() {
             window.setTimeout(
                 () => {
-
+                    // when we successfully reconnect, we'll force a
+                    // reload (since we presumably lost connection to
+                    // trunk due to it being killed, so it will have
+                    // rebuilt on restart)
                     const ws = new WebSocket(this.url);
                     ws.onopen = () => window.location.reload();
                     ws.onclose = () => this.onclose();

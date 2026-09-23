@@ -63,9 +63,26 @@ fn run_fetch(state: UseStateHandle<ListState>, search: String) {
     });
 }
 
+async fn delete_all() -> Result<(), String> {
+    let response = match gloo_net::http::Request::delete("/api/messages").send().await {
+        Ok(response) => response,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    match response.ok() {
+        true => Ok(()),
+        false => match response.json::<ErrorBody>().await {
+            Ok(body) => Err(body.error),
+            Err(_) => Err(format!("request failed: {}", response.status())),
+        },
+    }
+}
+
 #[derive(Properties, PartialEq)]
 pub struct MessageListProps {
     pub on_select: Callback<String>,
+    pub selected_id: Option<String>,
+    pub refresh_signal: u32,
 }
 
 #[function_component(MessageList)]
@@ -75,8 +92,9 @@ pub fn message_list(props: &MessageListProps) -> Html {
 
     {
         let state = state.clone();
-        use_effect_with((), move |_| {
-            run_fetch(state, String::new());
+        let search = search.clone();
+        use_effect_with(props.refresh_signal, move |_| {
+            run_fetch(state, (*search).clone());
         });
     }
 
@@ -101,50 +119,75 @@ pub fn message_list(props: &MessageListProps) -> Html {
         })
     };
 
+    let on_delete_all = {
+        let state = state.clone();
+        let search = search.clone();
+        Callback::from(move |_: MouseEvent| {
+            let state = state.clone();
+            let search = search.clone();
+            yew::platform::spawn_local(async move {
+                match delete_all().await {
+                    Ok(()) => run_fetch(state, (*search).clone()),
+                    Err(e) => state.set(ListState::Failed(e)),
+                }
+            });
+        })
+    };
+
     html! {
-        <div>
-            <div>
+        <aside class="sidebar">
+            <div class="sidebar-controls">
                 <input
                     type="text"
+                    class="search-input"
                     placeholder="Search from, to, subject..."
                     value={(*search).clone()}
                     oninput={on_search_input}
                 />
                 <button onclick={on_refresh}>{ "Refresh" }</button>
+                <button onclick={on_delete_all}>{ delete_all_label(&state) }</button>
             </div>
-            { render_body(&state, &props.on_select) }
-        </div>
+            { render_body(&state, &props.on_select, &props.selected_id) }
+        </aside>
     }
 }
 
-fn render_body(state: &ListState, on_select: &Callback<String>) -> Html {
+fn delete_all_label(state: &ListState) -> String {
     match state {
-        ListState::Loading => html! { <p>{ "Loading..." }</p> },
-        ListState::Failed(error) => html! { <p>{ format!("Error: {error}") }</p> },
+        ListState::Loaded(response) => format!("Delete all ({})", response.total),
+        _ => "Delete all".to_string(),
+    }
+}
+
+fn render_body(
+    state: &ListState,
+    on_select: &Callback<String>,
+    selected_id: &Option<String>,
+) -> Html {
+    match state {
+        ListState::Loading => html! { <p class="sidebar-message">{ "Loading..." }</p> },
+        ListState::Failed(error) => {
+            html! { <p class="sidebar-message error">{ format!("Error: {error}") }</p> }
+        }
         ListState::Loaded(response) => match response.messages.is_empty() {
-            true => html! { <p>{ "No messages." }</p> },
+            true => html! { <p class="sidebar-message">{ "The inbox is empty." }</p> },
             false => html! {
                 <>
-                    <p>{ format!("{} total", response.total) }</p>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>{ "From" }</th>
-                                <th>{ "Subject" }</th>
-                                <th>{ "Received" }</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            { for response.messages.iter().map(|m| render_row(m, on_select)) }
-                        </tbody>
-                    </table>
+                    <p class="sidebar-total">{ format!("{} total", response.total) }</p>
+                    <ul class="message-list">
+                        { for response.messages.iter().map(|m| render_row(m, on_select, selected_id)) }
+                    </ul>
                 </>
             },
         },
     }
 }
 
-fn render_row(message: &MessageSummary, on_select: &Callback<String>) -> Html {
+fn render_row(
+    message: &MessageSummary,
+    on_select: &Callback<String>,
+    selected_id: &Option<String>,
+) -> Html {
     let subject = match &message.subject {
         Some(subject) => subject.clone(),
         None => String::new(),
@@ -154,11 +197,23 @@ fn render_row(message: &MessageSummary, on_select: &Callback<String>) -> Html {
     let on_select = on_select.clone();
     let onclick = Callback::from(move |_: MouseEvent| on_select.emit(id.clone()));
 
+    let is_selected = selected_id.as_deref() == Some(message.id.as_str());
+    let mut classes = classes!("message-row");
+    if is_selected {
+        classes.push("selected");
+    }
+
     html! {
-        <tr key={message.id.clone()} onclick={onclick} style="cursor: pointer;">
-            <td>{ &message.from_addr }</td>
-            <td>{ subject }</td>
-            <td>{ &message.received_at }</td>
-        </tr>
+        <li key={message.id.clone()} class={classes} onclick={onclick}>
+            <span class="message-icon">{ "\u{2709}" }</span>
+            <div class="message-row-main">
+                <div class="message-row-top">
+                    <span class="message-from">{ &message.from_addr }</span>
+                    <span class="message-received">{ &message.received_at }</span>
+                </div>
+                <div class="message-subject">{ subject }</div>
+                <div class="message-to">{ format!("To: {}", message.to_addrs.join(", ")) }</div>
+            </div>
+        </li>
     }
 }
