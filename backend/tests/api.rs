@@ -31,15 +31,13 @@ async fn spawn_test_server() -> (String, Storage, TestDir) {
     let _ = std::fs::remove_dir_all(&dir);
 
     let storage = Storage::new(&dir).await.expect("open storage");
-    let app = api::app(storage.clone());
-
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+    let http_server = api::HttpServer::new("127.0.0.1:0", storage.clone())
         .await
         .expect("bind ephemeral port");
-    let addr = listener.local_addr().expect("read local addr");
+    let addr = http_server.local_addr().expect("read local addr");
 
     tokio::spawn(async move {
-        axum::serve(listener, app).await.expect("serve");
+        http_server.serve().await.expect("serve");
     });
 
     (format!("http://{addr}"), storage, TestDir(dir))

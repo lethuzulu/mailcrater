@@ -1,70 +1,52 @@
+mod types;
+
+use anyhow::Result;
 use axum::{
     Router,
     extract::{Path, Query, State},
     http::StatusCode,
     http::header,
-    response::{IntoResponse, Json, Response},
+    response::{IntoResponse, Json},
     routing::get,
 };
-use serde::{Deserialize, Serialize};
+use tokio::net::{TcpListener, ToSocketAddrs};
 
 use crate::storage::Storage;
-use crate::types::{MessageDetail, MessageSummary};
+use crate::types::MessageDetail;
+use types::{ApiError, ListMessagesQuery, MessageListResponse, VersionResponse};
 
-pub fn app(storage: Storage) -> Router {
-    Router::new()
-        .route("/api/version", get(version))
-        .route(
-            "/api/messages",
-            get(list_messages).delete(delete_all_messages),
-        )
-        .route(
-            "/api/messages/{id}",
-            get(get_message).delete(delete_message),
-        )
-        .route("/api/messages/{id}/raw", get(get_raw))
-        .route("/api/messages/{id}/attachments/{aid}", get(get_attachment))
-        .with_state(storage)
+pub struct HttpServer {
+    inner: TcpListener,
+    app: Router,
 }
 
-enum ApiError {
-    NotFound(String),
-    BadRequest(String),
-    Internal(anyhow::Error),
-}
-
-#[derive(Serialize)]
-struct ErrorBody {
-    error: String,
-}
-
-impl IntoResponse for ApiError {
-    fn into_response(self) -> Response {
-        let (status, message) = match self {
-            ApiError::NotFound(message) => (StatusCode::NOT_FOUND, message),
-            ApiError::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
-            ApiError::Internal(e) => {
-                tracing::error!(?e, "internal server error");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "internal server error".to_string(),
-                )
-            }
-        };
-
-        (status, Json(ErrorBody { error: message })).into_response()
+impl HttpServer {
+    pub async fn new(address: impl ToSocketAddrs, storage: Storage) -> Result<Self> {
+        let inner = TcpListener::bind(address).await?;
+        let app = Router::new()
+            .route("/api/version", get(version))
+            .route(
+                "/api/messages",
+                get(list_messages).delete(delete_all_messages),
+            )
+            .route(
+                "/api/messages/{id}",
+                get(get_message).delete(delete_message),
+            )
+            .route("/api/messages/{id}/raw", get(get_raw))
+            .route("/api/messages/{id}/attachments/{aid}", get(get_attachment))
+            .with_state(storage);
+        Ok(Self { inner, app })
     }
-}
 
-impl From<anyhow::Error> for ApiError {
-    fn from(e: anyhow::Error) -> Self {
-        ApiError::Internal(e)
+    pub fn local_addr(&self) -> Result<std::net::SocketAddr> {
+        Ok(self.inner.local_addr()?)
     }
-}
 
-#[derive(Serialize)]
-struct VersionResponse {
-    version: &'static str,
+    pub async fn serve(self) -> Result<()> {
+        axum::serve(self.inner, self.app).await?;
+        Ok(())
+    }
 }
 
 async fn version() -> Json<VersionResponse> {
@@ -82,21 +64,6 @@ async fn get_message(
         Some(message) => Ok(Json(message)),
         None => Err(ApiError::NotFound("message not found".to_string())),
     }
-}
-
-#[derive(Deserialize)]
-struct ListMessagesQuery {
-    search: Option<String>,
-    limit: Option<i64>,
-    offset: Option<i64>,
-}
-
-#[derive(Serialize)]
-struct MessageListResponse {
-    messages: Vec<MessageSummary>,
-    total: i64,
-    limit: i64,
-    offset: i64,
 }
 
 async fn list_messages(

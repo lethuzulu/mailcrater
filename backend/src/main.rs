@@ -51,8 +51,7 @@ async fn main() -> Result<()> {
         mail_server.serve().await;
     });
 
-    let app = api::app(storage);
-    let listener = tokio::net::TcpListener::bind(("0.0.0.0", config.http_port)).await?;
+    let http_server = api::HttpServer::new(("0.0.0.0", config.http_port), storage).await?;
 
     info!(
         smtp_port = config.smtp_port,
@@ -60,7 +59,7 @@ async fn main() -> Result<()> {
         "smtp and http servers listening"
     );
 
-    axum::serve(listener, app).await?;
+    http_server.serve().await?;
 
     Ok(())
 }

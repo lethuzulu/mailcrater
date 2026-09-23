@@ -1,3 +1,5 @@
+mod types;
+
 use std::{fs::create_dir_all, path::Path};
 
 use anyhow::Result;
@@ -9,44 +11,12 @@ use uuid::Uuid;
 use mailcrater_core::message::MailMessage;
 
 use crate::types::{AttachmentDownload, AttachmentMeta, MessageDetail, MessageSummary};
+use types::{AttachmentDownloadRow, AttachmentRow, MessageRow, MessageSummaryRow};
 
 #[derive(Clone)]
 pub struct Storage {
     pub pool: SqlitePool,
 }
-
-struct MessageRow {
-    id: String,
-    received_at: String,
-    from_addr: String,
-    to_addrs: String,
-    cc_addrs: Option<String>,
-    subject: Option<String>,
-    body_text: Option<String>,
-    body_html: Option<String>,
-}
-
-struct AttachmentRow {
-    id: String,
-    filename: Option<String>,
-    content_type: Option<String>,
-    size: i64,
-}
-
-struct MessageSummaryRow {
-    id: String,
-    received_at: String,
-    from_addr: String,
-    to_addrs: String,
-    subject: Option<String>,
-}
-
-struct AttachmentDownloadRow {
-    filename: Option<String>,
-    content_type: Option<String>,
-    data: Vec<u8>,
-}
-
 
 impl Storage {
     pub async fn new(dir: &Path) -> Result<Self> {
@@ -82,7 +52,7 @@ impl Storage {
         } = msg;
 
         let id = Uuid::new_v4();
-        
+
         let received_at = Utc::now().to_rfc3339(); // TODO: received_at is when we stored the message, not the message's own `Date:`.
 
         let to_addrs_json = serde_json::to_string(&to_addrs)?;
@@ -307,7 +277,7 @@ impl Storage {
         }
     }
 
-    
+
     pub async fn delete_message(&self, id: &str) -> Result<bool> {
         let result = sqlx::query!("DELETE FROM messages WHERE id = ?", id)
             .execute(&self.pool)
