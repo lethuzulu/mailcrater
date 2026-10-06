@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, received_at, from_addr, to_addrs, cc_addrs, subject, body_text, body_html FROM messages WHERE id = ?",
+  "query": "SELECT id, received_at, from_addr, to_addrs, cc_addrs, subject, body_text, body_html, headers FROM messages WHERE id = ?",
   "describe": {
     "columns": [
       {
@@ -42,6 +42,11 @@
         "name": "body_html",
         "ordinal": 7,
         "type_info": "Text"
+      },
+      {
+        "name": "headers",
+        "ordinal": 8,
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -55,8 +60,9 @@
       true,
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "dc9469fbd0c9c3fd311561979738adf711ef148d1dae29ad145624f10a608fce"
+  "hash": "0b975fe0c173c5eb0907ae30811533ec699f1aae4a5175f73cf0d85a44b91804"
 }

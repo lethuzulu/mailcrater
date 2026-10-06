@@ -963,6 +963,7 @@ dependencies = [
  "anyhow",
  "mail-parser",
  "mailin",
+ "serde",
  "tokio",
  "tracing",
 ]

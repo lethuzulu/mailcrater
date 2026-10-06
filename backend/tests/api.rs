@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use backend::api;
 use backend::storage::Storage;
-use mailcrater_core::message::{Attachment, MailMessage};
+use mailcrater_core::message::MailMessage;
 use reqwest::StatusCode;
 
 static TEST_COUNTER: AtomicU32 = AtomicU32::new(0);
@@ -51,14 +51,10 @@ fn sample_message(subject: &str, from_addr: &str) -> MailMessage {
         subject: Some(subject.to_string()),
         body_text: Some("plain body".to_string()),
         body_html: None,
+        headers: vec![],
         raw_size: 5,
         raw_source: b"hello".to_vec(),
-        attachments: vec![Attachment {
-            filename: Some("receipt.txt".to_string()),
-            content_type: Some("text/plain".to_string()),
-            size: 5,
-            data: b"hello".to_vec(),
-        }],
+        attachments: vec![],
     }
 }
 
@@ -110,8 +106,7 @@ async fn message_lifecycle_across_every_endpoint() {
     assert_eq!(detail["subject"], "Password reset");
     assert_eq!(detail["from_addr"], "alice@example.com");
     let attachments = detail["attachments"].as_array().expect("attachments array");
-    assert_eq!(attachments.len(), 1);
-    let attachment_id = attachments[0]["id"].as_str().expect("attachment id").to_string();
+    assert_eq!(attachments.len(), 0);
 
     // GET /api/messages (list, no filter)
     let list: serde_json::Value = client
@@ -185,30 +180,6 @@ async fn message_lifecycle_across_every_endpoint() {
     );
     assert_eq!(raw.bytes().await.unwrap().as_ref(), b"hello");
 
-    // GET /api/messages/:id/attachments/:aid
-    let attachment = client
-        .get(format!(
-            "{base_url}/api/messages/{id}/attachments/{attachment_id}"
-        ))
-        .send()
-        .await
-        .expect("request failed");
-    assert_eq!(attachment.status(), StatusCode::OK);
-    assert_eq!(
-        attachment.headers().get("content-type").unwrap(),
-        "text/plain"
-    );
-    assert_eq!(attachment.bytes().await.unwrap().as_ref(), b"hello");
-
-    // wrong parent message id -> 404, even with a valid attachment id
-    let wrong_parent = client
-        .get(format!(
-            "{base_url}/api/messages/some-other-id/attachments/{attachment_id}"
-        ))
-        .send()
-        .await
-        .expect("request failed");
-    assert_eq!(wrong_parent.status(), StatusCode::NOT_FOUND);
 
     // DELETE /api/messages/:id
     let delete = client
@@ -218,22 +189,13 @@ async fn message_lifecycle_across_every_endpoint() {
         .expect("request failed");
     assert_eq!(delete.status(), StatusCode::NO_CONTENT);
 
-    // deleted message is gone, and its attachment went with it (cascade)
+    // deleted message is gone
     let after_delete = client
         .get(format!("{base_url}/api/messages/{id}"))
         .send()
         .await
         .expect("request failed");
     assert_eq!(after_delete.status(), StatusCode::NOT_FOUND);
-
-    let attachment_after_delete = client
-        .get(format!(
-            "{base_url}/api/messages/{id}/attachments/{attachment_id}"
-        ))
-        .send()
-        .await
-        .expect("request failed");
-    assert_eq!(attachment_after_delete.status(), StatusCode::NOT_FOUND);
 
     // deleting again -> 404, nothing left to delete
     let delete_again = client

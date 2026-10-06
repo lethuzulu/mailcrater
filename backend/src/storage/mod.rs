@@ -8,7 +8,7 @@ use sqlx::{SqlitePool, sqlite::{SqliteConnectOptions, SqliteJournalMode, SqliteP
 use tracing::info;
 use uuid::Uuid;
 
-use mailcrater_core::message::MailMessage;
+use mailcrater_core::message::{Header, MailMessage};
 
 use crate::types::{AttachmentDownload, AttachmentMeta, MessageDetail, MessageSummary};
 use types::{AttachmentDownloadRow, AttachmentRow, MessageRow, MessageSummaryRow};
@@ -46,6 +46,7 @@ impl Storage {
             subject,
             body_text,
             body_html,
+            headers,
             raw_size,
             raw_source,
             attachments,
@@ -61,6 +62,7 @@ impl Storage {
         } else {
             Some(serde_json::to_string(&cc_addrs)?)
         };
+        let headers_json = serde_json::to_string(&headers)?;
 
         let mut tx = self.pool.begin().await?;
 
@@ -69,8 +71,8 @@ impl Storage {
 
         sqlx::query!(
             "INSERT INTO messages
-                (id, received_at, from_addr, to_addrs, cc_addrs, subject, body_text, body_html, raw_size, raw_source)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (id, received_at, from_addr, to_addrs, cc_addrs, subject, body_text, body_html, headers, raw_size, raw_source)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             id_str,
             received_at,
             from_addr,
@@ -79,6 +81,7 @@ impl Storage {
             subject,
             body_text,
             body_html,
+            headers_json,
             raw_size,
             raw_source,
         )
@@ -88,7 +91,7 @@ impl Storage {
         for attachment in attachments {
             let attachment_id = Uuid::new_v4().to_string();
             let size = attachment.size as i64;
-
+        
             sqlx::query!(
                 "INSERT INTO attachments (id, message_id, filename, content_type, size, data)
                  VALUES (?, ?, ?, ?, ?, ?)",
@@ -113,7 +116,7 @@ impl Storage {
     pub async fn get_message(&self, id: &str) -> Result<Option<MessageDetail>> {
         let row = sqlx::query_as!(
             MessageRow,
-            "SELECT id, received_at, from_addr, to_addrs, cc_addrs, subject, body_text, body_html FROM messages WHERE id = ?",
+            "SELECT id, received_at, from_addr, to_addrs, cc_addrs, subject, body_text, body_html, headers FROM messages WHERE id = ?",
             id,
         )
         .fetch_optional(&self.pool)
@@ -131,6 +134,11 @@ impl Storage {
             None => Vec::new(),
         };
 
+        let headers: Vec<Header> = match row.headers {
+            Some(json) => serde_json::from_str(&json)?,
+            None => Vec::new(),
+        };
+
         let attachment_rows = sqlx::query_as!(
             AttachmentRow,
             "SELECT id, filename, content_type, size FROM attachments WHERE message_id = ?",
@@ -138,7 +146,7 @@ impl Storage {
         )
         .fetch_all(&self.pool)
         .await?;
-
+        
         let mut attachments = Vec::new();
         for attachment_row in attachment_rows {
             attachments.push(AttachmentMeta {
@@ -158,6 +166,7 @@ impl Storage {
             subject: row.subject,
             body_text: row.body_text,
             body_html: row.body_html,
+            headers,
             attachments,
         }))
     }
@@ -266,7 +275,7 @@ impl Storage {
         )
         .fetch_optional(&self.pool)
         .await?;
-
+    
         match row {
             Some(row) => Ok(Some(AttachmentDownload {
                 filename: row.filename,

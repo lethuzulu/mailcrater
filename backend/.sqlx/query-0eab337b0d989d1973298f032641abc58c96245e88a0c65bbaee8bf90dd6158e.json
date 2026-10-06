@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, received_at, from_addr, to_addrs, subject FROM messages\n                     WHERE subject LIKE ? OR from_addr LIKE ?\n                     ORDER BY received_at DESC\n                     LIMIT ? OFFSET ?",
+  "query": "SELECT id, received_at, from_addr, to_addrs, subject FROM messages\n                     WHERE subject LIKE ? OR from_addr LIKE ? OR to_addrs LIKE ?\n                     ORDER BY received_at DESC\n                     LIMIT ? OFFSET ?",
   "describe": {
     "columns": [
       {
@@ -30,7 +30,7 @@
       }
     ],
     "parameters": {
-      "Right": 4
+      "Right": 5
     },
     "nullable": [
       false,
@@ -40,5 +40,5 @@
       true
     ]
   },
-  "hash": "95008fe0ee2e0a4e675324e4e0610dcc1a1207366d46d651c2cdfa30403a5385"
+  "hash": "0eab337b0d989d1973298f032641abc58c96245e88a0c65bbaee8bf90dd6158e"
 }

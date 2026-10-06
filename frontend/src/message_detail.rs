@@ -10,6 +10,12 @@ struct AttachmentMeta {
 }
 
 #[derive(Deserialize, Clone, PartialEq)]
+struct Header {
+    name: String,
+    value: String,
+}
+
+#[derive(Deserialize, Clone, PartialEq)]
 struct MessageDetail {
     id: String,
     received_at: String,
@@ -19,6 +25,7 @@ struct MessageDetail {
     subject: Option<String>,
     body_text: Option<String>,
     body_html: Option<String>,
+    headers: Vec<Header>,
     attachments: Vec<AttachmentMeta>,
 }
 
@@ -37,8 +44,10 @@ enum DetailState {
 
 #[derive(Clone, Copy, PartialEq)]
 enum BodyTab {
-    Html,
+    // HTML tab disabled for now — plain text only.
+    // Html,
     Plain,
+    Headers,
 }
 
 async fn fetch_detail(id: String) -> DetailState {
@@ -87,25 +96,16 @@ pub struct MessageDetailProps {
 #[function_component(MessageDetailView)]
 pub fn message_detail_view(props: &MessageDetailProps) -> Html {
     let state = use_state(|| DetailState::Loading);
-    let tab = use_state(|| BodyTab::Html);
+    let tab = use_state(|| BodyTab::Plain);
 
     {
         let state = state.clone();
-        let tab = tab.clone();
         let id = props.id.clone();
         use_effect_with(id.clone(), move |_| {
             state.set(DetailState::Loading);
             let state = state.clone();
-            let tab = tab.clone();
             yew::platform::spawn_local(async move {
                 let result = fetch_detail(id).await;
-                if let DetailState::Loaded(detail) = &result {
-                    let default_tab = match detail.body_html.is_some() {
-                        true => BodyTab::Html,
-                        false => BodyTab::Plain,
-                    };
-                    tab.set(default_tab);
-                }
                 state.set(result);
             });
         });
@@ -140,35 +140,42 @@ fn render_detail(
     tab: &UseStateHandle<BodyTab>,
     on_delete: &Callback<MouseEvent>,
 ) -> Html {
-    let raw_url = format!("/api/messages/{}/raw", detail.id);
+    // HTML and Raw tabs disabled for now — plain text only.
+    // let raw_url = format!("/api/messages/{}/raw", detail.id);
+    //
+    // let on_html_tab = {
+    //     let tab = tab.clone();
+    //     Callback::from(move |_: MouseEvent| tab.set(BodyTab::Html))
+    // };
 
-    let on_html_tab = {
-        let tab = tab.clone();
-        Callback::from(move |_: MouseEvent| tab.set(BodyTab::Html))
-    };
     let on_plain_tab = {
         let tab = tab.clone();
         Callback::from(move |_: MouseEvent| tab.set(BodyTab::Plain))
     };
+    let on_headers_tab = {
+        let tab = tab.clone();
+        Callback::from(move |_: MouseEvent| tab.set(BodyTab::Headers))
+    };
 
-    let mut html_tab_classes = classes!("tab");
     let mut plain_tab_classes = classes!("tab");
+    let mut headers_tab_classes = classes!("tab");
     match **tab {
-        BodyTab::Html => html_tab_classes.push("active"),
         BodyTab::Plain => plain_tab_classes.push("active"),
+        BodyTab::Headers => headers_tab_classes.push("active"),
     }
 
     let body = match **tab {
-        BodyTab::Html => match &detail.body_html {
-            Some(html_body) => {
-                html! { <iframe class="body-frame" sandbox="" srcdoc={html_body.clone()}></iframe> }
-            }
-            None => html! { <p class="body-empty">{ "No HTML body." }</p> },
-        },
+        // BodyTab::Html => match &detail.body_html {
+        //     Some(html_body) => {
+        //         html! { <iframe class="body-frame" sandbox="" srcdoc={html_body.clone()}></iframe> }
+        //     }
+        //     None => html! { <p class="body-empty">{ "No HTML body." }</p> },
+        // },
         BodyTab::Plain => match &detail.body_text {
             Some(text) => html! { <pre class="body-plain">{ text }</pre> },
             None => html! { <p class="body-empty">{ "No plain text body." }</p> },
         },
+        BodyTab::Headers => render_headers(&detail.headers),
     };
 
     html! {
@@ -183,9 +190,10 @@ fn render_detail(
                 </tbody>
             </table>
             <div class="tab-bar">
-                <button class={html_tab_classes} onclick={on_html_tab}>{ "HTML" }</button>
+                // <button class={html_tab_classes} onclick={on_html_tab}>{ "HTML" }</button>
                 <button class={plain_tab_classes} onclick={on_plain_tab}>{ "Plain" }</button>
-                <a class="tab" href={raw_url} target="_blank">{ "Raw" }</a>
+                <button class={headers_tab_classes} onclick={on_headers_tab}>{ "Headers" }</button>
+                // <a class="tab" href={raw_url} target="_blank">{ "Raw" }</a>
                 <button class="delete-button" onclick={on_delete.clone()}>{ "Delete" }</button>
             </div>
             <div class="body-container">
@@ -193,6 +201,21 @@ fn render_detail(
             </div>
             { render_attachments(detail) }
         </div>
+    }
+}
+
+fn render_headers(headers: &[Header]) -> Html {
+    match headers.is_empty() {
+        true => html! { <p class="body-empty">{ "No headers." }</p> },
+        false => html! {
+            <table class="message-meta">
+                <tbody>
+                    { for headers.iter().map(|h| html! {
+                        <tr><td>{ &h.name }</td><td>{ &h.value }</td></tr>
+                    }) }
+                </tbody>
+            </table>
+        },
     }
 }
 

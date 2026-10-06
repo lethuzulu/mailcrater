@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use mail_parser::{Message, MessagePart, MimeHeaders};
 
 #[derive(Debug)]
@@ -8,9 +9,16 @@ pub struct MailMessage {
     pub subject: Option<String>,
     pub body_text: Option<String>,
     pub body_html: Option<String>,
+    pub headers: Vec<Header>,
     pub raw_size: usize,
     pub raw_source: Vec<u8>,
     pub attachments: Vec<Attachment>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Header {
+    pub name: String,
+    pub value: String,
 }
 
 #[derive(Debug)]
@@ -78,6 +86,14 @@ impl From<&Message<'_>> for MailMessage {
             None => None,
         };
 
+        let mut headers = Vec::new();
+        for (name, value) in message.headers_raw() {
+            headers.push(Header {
+                name: name.to_string(),
+                value: value.trim().to_string(),
+            });
+        }
+
         let mut attachments = Vec::new();
         for part in message.attachments() {
             attachments.push(Attachment::from(part));
@@ -90,6 +106,7 @@ impl From<&Message<'_>> for MailMessage {
             subject,
             body_text,
             body_html,
+            headers,
             raw_size: 0,
             raw_source: Vec::new(),
             attachments,

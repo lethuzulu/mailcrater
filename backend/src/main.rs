@@ -42,11 +42,12 @@ async fn main() -> Result<()> {
     });
 
     let mail_server = MailServer::new(
-        ("127.0.0.1", config.smtp_port),
+        ("127.0.0.1", config.smtp_port), // TODO: fix/configure smtp host and port
         tx,
         config.max_message_size,
     )
     .await?;
+    // TODO: run the mail server and the http server using some sort of tokio primitive like select! or join
     tokio::spawn(async move {
         mail_server.serve().await;
     });

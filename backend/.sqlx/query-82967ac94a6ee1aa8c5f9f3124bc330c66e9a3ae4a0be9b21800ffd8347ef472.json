@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COUNT(*) FROM messages WHERE subject LIKE ? OR from_addr LIKE ? OR to_addrs LIKE ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "COUNT(*)",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "82967ac94a6ee1aa8c5f9f3124bc330c66e9a3ae4a0be9b21800ffd8347ef472"
+}

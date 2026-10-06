@@ -1,3 +1,4 @@
+use mailcrater_core::message::Header;
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -10,6 +11,7 @@ pub struct MessageDetail {
     pub subject: Option<String>,
     pub body_text: Option<String>,
     pub body_html: Option<String>,
+    pub headers: Vec<Header>,
     pub attachments: Vec<AttachmentMeta>,
 }
 
